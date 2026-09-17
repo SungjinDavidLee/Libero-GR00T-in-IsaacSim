@@ -9,7 +9,7 @@
 ```mermaid
 graph TD
     subgraph POL["정책 서버"]
-        G["GR00T N1.6<br/>libero_spatial<br/>ZMQ"]
+        G["GR00T N1.7<br/>libero_spatial<br/>ZMQ"]
     end
     subgraph SIM["시뮬레이터"]
         I["Isaac Sim 6.0.1<br/>Franka Panda"]
@@ -37,7 +37,7 @@ graph TD
 | 관절 제어 | 위치 PD, kp 22918, kd 4583 (에셋 기본값) |
 | 관절 최대 토크 | 87 / 87 / 87 / 87 / 12 / 12 / 12 N·m |
 | 역기구학 | Lula, 4단계 폴백 |
-| 정책 | GR00T N1.6, `libero_spatial` 체크포인트 |
+| 정책 | GR00T N1.7, `libero_spatial` 체크포인트 |
 | embodiment tag | `libero_sim` |
 | 참조 | MuJoCo / robosuite, OSC_POSE, `n_action_steps = 8` |
 
@@ -102,13 +102,15 @@ FLOORZ=0.90  PACC=0  HOLD=0
 
 ### 4-3. 표본
 
-| 항목 | 값 |
-|---|---|
-| 태스크 | 10 |
-| 태스크당 에피소드 | 50 |
-| 총 에피소드 | 500 |
-| 참조 태스크당 에피소드 | 10 |
-| 참조 총 | 100 |
+| 측정 | 규모 | 비고 |
+|---|---|---|
+| 참조 기준선 | 10 태스크 × 10 = 100 | MuJoCo |
+| 벤치마크 1차 | 10 태스크 × 50 = 500 | 방해 물체 없음 |
+| 벤치마크 2차 | 10 태스크 × 50 = 499 | 방해 물체 복원. T9 한 판 유실 |
+| 배치 실험 1차 | 30 세트 × 1 = 30 | 기하 난이도 축 |
+| 배치 실험 2차 | 30 세트 × 1 = 30 | 학습 배치 거리 축 |
+| 방해 물체 근접 | 3 태스크 × 4 거리 × 12 = 144 | |
+| 제어 오차 | 21 지점 × 1 | 정책 미사용 |
 
 ---
 
