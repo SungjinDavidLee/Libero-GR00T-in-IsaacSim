@@ -319,6 +319,135 @@ def fig_calibration():
     save(fig, "calibration.png")
 
 
+def fig_reach_success(rows):
+    """C experiment: only the distance from the base changes."""
+    import collections
+    per = collections.defaultdict(list)
+    for r in rows:
+        per[float(r["reach"])].append(r)
+    xs = sorted(per)
+    place = [100 * sum(1 for r in per[x] if r["termhold"] == "1") / len(per[x])
+             for x in xs]
+    lift = [100 * sum(1 for r in per[x] if float(r["maxlift"]) > 0.017) / len(per[x])
+            for x in xs]
+    align = [1000 * st.median(float(r["d_xy"]) for r in per[x] if r["d_xy"])
+             for x in xs]
+    corrected = [a - ctrl_at(x) for a, x in zip(align, xs)]
+
+    fig, axes = plt.subplots(1, 2, figsize=(16.0, 4.4))
+    fig.subplots_adjust(wspace=0.30)
+
+    ax = axes[0]
+    ax.plot(xs, lift, color=TEAL, linewidth=2.2, marker="s", markersize=6,
+            label="object lifted")
+    ax.plot(xs, place, color=AMBER, linewidth=2.6, marker="o", markersize=7,
+            label="placed")
+    for x, v in zip(xs, place):
+        ax.text(x, v + 4, "%.0f%%" % v, ha="center", fontsize=8.5, color=INK)
+    ax.set_ylim(-6, 112)
+    style(ax, "Only the base distance changes (20 episodes per level)",
+          xlabel="distance from the robot base (m)", ylabel="rate (%)")
+    ax.legend(frameon=False, fontsize=9, labelcolor=MUT, loc="lower left")
+
+    ax = axes[1]
+    ax.plot(xs, align, color=BLUE, linewidth=2.2, marker="o", markersize=6,
+            label="alignment error")
+    ax.plot(xs, corrected, color=TEAL, linewidth=2.0, marker="^", markersize=6,
+            linestyle="--", label="after removing control error")
+    ax.plot([c[0] for c in CONTROL], [c[1] for c in CONTROL], color=RED,
+            linewidth=1.8, marker="s", markersize=4,
+            label="control-only error (policy off)")
+    ax.set_xlim(min(xs) - 0.02, max(xs) + 0.02)
+    style(ax, "Grasp alignment error, same axis",
+          xlabel="distance from the robot base (m)", ylabel="median error (mm)")
+    ax.legend(frameon=False, fontsize=9, labelcolor=MUT, loc="upper left")
+    save(fig, "reach-success.png")
+
+
+def fig_setup_map(setups):
+    """Plan view of the 30 randomised layouts."""
+    RAMEKIN, STOVE, CABINET = (-0.2000, 0.2000), (-0.2671, -0.1311), (0.0356, -0.2776)
+    TRAIN = {"plate": (0.060, 0.200), "cookies": (0.070, 0.030),
+             "target": (0.130, -0.070)}
+    mark = {"plate": ("o", 120), "cookies": ("s", 90), "target": ("o", 70)}
+    fig, ax = plt.subplots(figsize=(7.6, 7.6))
+    for p, r, nm in ((RAMEKIN, 0.055, "ramekin"), (STOVE, 0.075, "stove"),
+                     (CABINET, 0.110, "cabinet")):
+        ax.add_patch(plt.Circle(p, r, facecolor=GREY, alpha=0.30,
+                                edgecolor=GREY, zorder=1))
+        ax.text(p[0], p[1], nm, ha="center", va="center", fontsize=7.5,
+                color="#4b5563", zorder=2)
+    for r in setups:
+        c = BLUE if r["difficulty"] == "easy" else AMBER
+        px, py = float(r["plate_x"]), float(r["plate_y"])
+        tx, ty = float(r["target_x"]), float(r["target_y"])
+        ax.plot([px, tx], [py, ty], color=c, linewidth=0.7, alpha=0.30, zorder=4)
+        for k in ("plate", "cookies", "target"):
+            m, sz = mark[k]
+            ax.scatter([float(r[k + "_x"])], [float(r[k + "_y"])], marker=m,
+                       s=sz * 0.35, color=c, alpha=0.7, edgecolor="none", zorder=5)
+    for k, (x, y) in TRAIN.items():
+        m, sz = mark[k]
+        ax.scatter([x], [y], marker=m, s=sz, facecolor="none", edgecolor=INK,
+                   linewidth=1.8, zorder=6)
+        ax.text(x + 0.018, y, k, fontsize=8.5, color=INK, va="center", zorder=6)
+    ax.scatter([], [], marker="o", s=45, color=BLUE, label="near the training layout")
+    ax.scatter([], [], marker="o", s=45, color=AMBER, label="far from it")
+    ax.scatter([], [], marker="o", s=60, facecolor="none", edgecolor=INK,
+               label="training layout")
+    ax.legend(frameon=False, fontsize=8.5, labelcolor=MUT, loc="lower left")
+    ax.set_aspect("equal")
+    ax.set_xlim(-0.34, 0.26)
+    ax.set_ylim(-0.34, 0.38)
+    style(ax, "The 30 randomised layouts — plan view (m)",
+          xlabel="x  (towards the viewer)", ylabel="y  (left in the camera image)",
+          grid="both")
+    save(fig, "setup-map.png")
+
+
+def fig_setup_grid(setups):
+    RAMEKIN, STOVE, CABINET = (-0.2000, 0.2000), (-0.2671, -0.1311), (0.0356, -0.2776)
+    rows = sorted(setups, key=lambda r: int(r["set_id"]))
+    fig, axes = plt.subplots(5, 6, figsize=(16.5, 14.0))
+    for ax, r in zip(axes.ravel(), rows):
+        c = BLUE if r["difficulty"] == "easy" else AMBER
+        for p, rad in ((RAMEKIN, 0.055), (STOVE, 0.075), (CABINET, 0.110)):
+            ax.add_patch(plt.Circle(p, rad, facecolor=GREY, alpha=0.25,
+                                    edgecolor="none", zorder=1))
+        px, py = float(r["plate_x"]), float(r["plate_y"])
+        tx, ty = float(r["target_x"]), float(r["target_y"])
+        cx, cy = float(r["cookies_x"]), float(r["cookies_y"])
+        ax.plot([px, tx], [py, ty], color=c, linewidth=1.2, alpha=0.5, zorder=4)
+        ax.scatter([px], [py], marker="o", s=55, color=c, zorder=5)
+        ax.scatter([cx], [cy], marker="s", s=42, color=c, zorder=5)
+        ax.scatter([tx], [ty], marker="o", s=34, color=c, zorder=5)
+        for x, y, lab in ((px, py, "P"), (cx, cy, "C"), (tx, ty, "B")):
+            ax.text(x + 0.022, y, lab, fontsize=8, color=INK)
+        ax.set_aspect("equal")
+        ax.set_xlim(-0.34, 0.26)
+        ax.set_ylim(-0.34, 0.38)
+        ax.set_xticklabels([])
+        ax.set_yticklabels([])
+        style(ax, "", grid=None)
+        ax.set_title("#%s  %s\nreach %.0f mm"
+                     % (r["set_id"], r["difficulty"],
+                        1000 * float(r["reach_distance"])),
+                     fontsize=8.5, color=INK, pad=6)
+    fig.suptitle("Per-set layouts   P plate · C cookie box · B target bowl",
+                 x=0.06, y=0.995, ha="left", fontsize=14, fontweight="bold",
+                 color=INK)
+    save(fig, "setup-grid.png")
+
+
+def ctrl_at(r):
+    if r <= CONTROL[0][0]:
+        return CONTROL[0][1]
+    for (a, fa), (b, fb) in zip(CONTROL, CONTROL[1:]):
+        if r <= b:
+            return fa + (fb - fa) * (r - a) / (b - a)
+    return CONTROL[-1][1]
+
+
 def main():
     run2 = load("episodes_run2.csv")
     layout = load("layout2_results.csv")
@@ -330,6 +459,10 @@ def main():
     fig_proximity()
     fig_layout(layout)
     fig_calibration()
+    fig_reach_success(load("reach_results.csv"))
+    setups = load("layout2_setups.csv")
+    fig_setup_map(setups)
+    fig_setup_grid(setups)
 
 
 if __name__ == "__main__":

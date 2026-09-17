@@ -9,11 +9,12 @@
 | [scene_fidelity.md](scene_fidelity.md) | 이식 씬과 참조 씬의 좌표 대조, 수정 이력 |
 | [distractor.md](distractor.md) | 방해 물체 복원과 근접 실험 |
 | [layout.md](layout.md) | 배치 변화 실험 두 건, 기각된 가설 |
-| [workspace.md](workspace.md) | 작업공간 의존 관측과 확인 실험 설계 |
+| [workspace.md](workspace.md) | 작업공간 거리 의존 — 관측과 확인 실험 |
 | [rejected.md](rejected.md) | 기각한 가설, 계측 오류, 설계 오류 |
 
 ## 읽는 순서
 
 처음이라면 methodology → adapter → calibration 순서를 권한다.
 결과 해석이 목적이라면 success_criteria 를 먼저 보는 편이 낫다.
-실험 세 건은 distractor → layout → workspace 순서로 이어진다.
+실험 네 건은 distractor → layout → workspace 순서로 이어진다.
+layout 에서 두 가설이 기각되고 workspace 에서 답이 나온다.

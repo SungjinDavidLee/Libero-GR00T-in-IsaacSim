@@ -193,6 +193,70 @@ def main():
     corr("[9] 베이스까지 거리 ~ 제어 오차 (정책 미사용)",
          [c[0] for c in control], [c[1] for c in control])
 
+    # --- 10. 작업공간 확인 실험 ------------------------------------------
+    import collections
+    reach_rows = load("reach_results.csv")
+    per = collections.defaultdict(list)
+    for r in reach_rows:
+        per[float(r["reach"])].append(r)
+    xs = sorted(per)
+    place = [sum(1 for r in per[x] if r["termhold"] == "1") for x in xs]
+    rate = [p / len(per[x]) for p, x in zip(place, xs)]
+    align = [st.median(1000 * float(r["d_xy"]) for r in per[x] if r["d_xy"])
+             for x in xs]
+
+    def ctrl_at(v):
+        c = [(0.45, 1.41), (0.55, 2.08), (0.62, 2.80),
+             (0.68, 3.76), (0.74, 5.35), (0.80, 8.97)]
+        if v <= c[0][0]:
+            return c[0][1]
+        for (a, fa), (b, fb) in zip(c, c[1:]):
+            if v <= b:
+                return fa + (fb - fa) * (v - a) / (b - a)
+        return c[-1][1]
+
+    corrected = [a - ctrl_at(x) for a, x in zip(align, xs)]
+    print("[10] 작업공간 확인 실험 — 거리만 변함 (7 수준 × 20판)")
+    print("  거리    배치       정렬 오차   보정 후")
+    for x, p_, a, cc in zip(xs, place, align, corrected):
+        print("  %.3f  %2d/20 (%3.0f%%)  %6.1f mm  %6.1f mm"
+              % (x, p_, 100 * p_ / 20, a, cc))
+    print()
+    corr("[10a] 거리 ~ 배치 성공률", xs, rate)
+    corr("[10b] 거리 ~ 정렬 오차", xs, align)
+    corr("[10c] 거리 ~ 보정 후 정렬 오차", xs, corrected)
+    near = sum(place[:2])
+    far = sum(place[4:])
+    compare("[10d] 가까움 (0.58 + 0.615) vs 멂 (0.72 ~ 0.78)",
+            near, 40, far, 60, "0.58 + 0.615", "0.72 ~ 0.78")
+
+    # --- 11. 학습 위치 가설과의 대조 --------------------------------------
+    TR = {"plate": (0.060, 0.200), "cookies": (0.070, 0.030),
+          "target": (0.130, -0.070)}
+    LAY = {0.580: ((-0.081, 0.300), (-0.081, 0.120), (-0.081, -0.030)),
+           0.615: ((-0.046, 0.300), (-0.046, 0.120), (-0.046, -0.030)),
+           0.650: ((-0.010, 0.330), (-0.010, 0.150), (-0.010, 0.000)),
+           0.685: ((0.024, 0.360), (0.024, 0.180), (0.024, 0.030)),
+           0.720: ((0.058, 0.380), (0.058, 0.200), (0.058, 0.050)),
+           0.750: ((0.088, 0.380), (0.088, 0.200), (0.088, 0.050)),
+           0.780: ((0.118, 0.380), (0.118, 0.200), (0.118, 0.050))}
+    dist = lambda a, b: math.hypot(a[0] - b[0], a[1] - b[1])
+    md, bd = [], []
+    for x in xs:
+        pl, ck, bw = LAY[x]
+        md.append((dist(pl, TR["plate"]) + dist(ck, TR["cookies"])
+                   + dist(bw, TR["target"])) / 3)
+        bd.append(dist(bw, TR["target"]))
+    print("[11] 학습 위치 가설과의 대조")
+    print("  거리    학습 배치 거리  그릇 이동량  배치 성공")
+    for x, m, b, p_ in zip(xs, md, bd, place):
+        print("  %.3f    %5.0f mm     %5.0f mm   %2d/20" % (x, 1000 * m, 1000 * b, p_))
+    print()
+    corr("[11a] 성공률 ~ 학습 배치 거리", md, rate)
+    corr("[11b] 성공률 ~ 그릇 이동량", bd, rate)
+    corr("[11c] 거리 ~ 그릇 이동량 (교란 정도)", xs, bd)
+
+
 
 if __name__ == "__main__":
     main()
