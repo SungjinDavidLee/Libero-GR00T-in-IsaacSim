@@ -1,0 +1,7 @@
+profile,eff_hfov_deg,eff_vfov_deg,render,crop,d_x_mm,d_y_mm,placed,n
+libero_agentview_hand_visible,45.0,45.0,256x256,none,-1.0,-51.0,44,50
+d405,70.9,58.0,640x480,center square,-40.5,-22.0,16,25
+d405_169,56.2,58.0,1280x720,center square,-29.0,-48.5,14,26
+d405_169+CROPA,45.0,46.6,1280x720,CROPA 0.602,-16.0,-57.5,22,26
+d405_crop45,45.0,45.0,720x720,none,-48.0,56.0,7,25
+d405_crop45@256,45.0,45.0,256x256,none,,,14,26
